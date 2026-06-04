@@ -1,0 +1,172 @@
+# myStu API
+
+基于 [FastAPI](https://fastapi.tiangolo.com/) 的 Python Web API 基础框架，采用分层目录与统一响应格式，便于后续扩展业务接口。
+
+## 环境要求
+
+- Python 3.11+（本地开发）
+- Docker & Docker Compose（容器部署）
+- 推荐使用项目内虚拟环境 `.venv`
+
+## 快速开始
+
+### 本地开发
+
+```bash
+# 创建并激活虚拟环境（若尚未创建）
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 复制环境变量配置
+cp .env.example .env
+
+# 启动服务
+python main.py
+```
+
+也可直接使用 uvicorn：
+
+```bash
+uvicorn app.main:app --reload --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
+```
+
+服务监听地址由 `.env` 中 `HOST`、`PORT` 决定，默认 `http://127.0.0.1:8000`。
+
+### Docker 部署
+
+```bash
+# 复制环境变量配置（首次部署）
+cp .env.example .env
+
+# 构建并启动（后台运行）
+docker compose up -d --build
+
+# 查看日志
+docker compose logs -f api
+
+# 停止服务
+docker compose down
+```
+
+容器会读取 `.env` 中的 `HOST`、`PORT` 等配置；端口映射同样由 `PORT` 决定，修改后需重新执行 `docker compose up -d`。
+
+仅使用 Docker（不通过 Compose）时：
+
+```bash
+docker build -t mystu-api .
+docker run -d --name mystu-api --env-file .env -p ${PORT:-8000}:${PORT:-8000} mystu-api
+```
+
+> 修改代码后必须**完全停止**旧进程再启动。若仍看到 `code, message, data` 或根路径只有 `{"message":...}`，说明 8000 端口上还在跑旧服务。可先执行：`lsof -iTCP:8000 -sTCP:LISTEN` 查 PID，再 `kill <PID>`。
+
+## 项目结构
+
+```
+myStu/
+├── main.py                 # 启动入口
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
+├── .env.example
+└── app/
+    ├── main.py             # 应用工厂 create_app()
+    ├── config.py           # 配置（pydantic-settings）
+    ├── api/v1/
+    │   ├── router.py       # v1 路由聚合
+    │   └── endpoints/      # 具体接口
+    ├── core/
+    │   └── exceptions.py   # 业务异常与全局处理
+    └── schemas/
+        └── common.py       # 统一响应模型 ApiResponse
+```
+
+## 配置说明
+
+通过 `.env` 或环境变量覆盖默认值（见 `.env.example`）：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `APP_NAME` | 应用名称 | `myStu API` |
+| `APP_VERSION` | 版本号 | `0.1.0` |
+| `DEBUG` | 调试模式（影响热重载等） | `false` |
+| `HOST` | 监听地址 | `0.0.0.0` |
+| `PORT` | 监听端口 | `8000` |
+| `API_PREFIX` | API 路径前缀 | `/api/v1` |
+| `CORS_ORIGINS` | 允许的跨域来源（JSON 数组） | `["*"]` |
+
+## API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/` | 欢迎信息（统一响应格式） |
+| GET | `/api/v1/health` | 健康检查 |
+
+所有接口（含参数校验失败、HTTP 异常）均返回 `code` → `data` → `message` 顺序的 JSON。
+
+### 响应格式
+
+业务接口统一使用 `ApiResponse`：
+
+```json
+{
+  "code": 0,
+  "data": { },
+  "message": "ok"
+}
+```
+
+- `code`: 业务状态码，`0` 表示成功
+- `data`: 业务数据，可为 `null`
+- `message`: 提示信息
+
+## 交互式文档
+
+启动服务后访问：
+
+- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+## 扩展新接口
+
+1. 在 `app/api/v1/endpoints/` 下新增路由模块，例如 `users.py`：
+
+```python
+from fastapi import APIRouter
+from app.schemas.common import ApiResponse
+
+router = APIRouter(tags=["users"])
+
+@router.get("/users")
+async def list_users() -> ApiResponse[list]:
+    return success(data=[])
+```
+
+2. 在 `app/api/v1/router.py` 中注册：
+
+```python
+from app.api.v1.endpoints import health, users
+
+api_router.include_router(users.router)
+```
+
+3. 复杂请求/响应体可放在 `app/schemas/` 中定义 Pydantic 模型。
+
+## 业务异常
+
+抛出 `AppException` 会由全局处理器转换为统一 JSON 响应：
+
+```python
+from app.core.exceptions import AppException
+
+raise AppException("资源不存在", code=404)
+```
+
+## 依赖
+
+- [FastAPI](https://fastapi.tiangolo.com/) — Web 框架
+- [Uvicorn](https://www.uvicorn.org/) — ASGI 服务器
+- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) — 配置管理
