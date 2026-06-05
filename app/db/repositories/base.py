@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Table, func, select
+from sqlalchemy import Table, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
@@ -189,3 +189,35 @@ class BaseRepository:
             page_size=page_size,
             pages=pages,
         )
+
+    async def update_by_id(
+        self,
+        record_id: int,
+        data: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """
+        按主键更新记录，仅更新 ``data`` 中包含的字段。
+
+        :param record_id: 主键值
+        :param data: 待更新字段，如 ``{"username": "tom", "is_admin": 0}``
+        :return: 更新后的完整记录；记录不存在时返回 ``None``
+        """
+        if not data:
+            raise AppException("无更新内容", code=400)
+        if self.pk_column in data:
+            raise AppException(f"不允许修改主键: {self.pk_column}", code=400)
+
+        for key in data:
+            self._ensure_field(key)
+
+        stmt = (
+            update(self._table)
+            .where(self._table.c[self.pk_column] == record_id)
+            .values(**data)
+        )
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            return None
+
+        await self._session.commit()
+        return await self.get_one_by_id(record_id)

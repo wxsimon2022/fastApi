@@ -2,7 +2,13 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from app.api.helpers import response_by_field, response_list, response_one
+from app.api.helpers import (
+    response_by_field,
+    response_list,
+    response_one,
+    response_updated,
+)
+from app.schemas.user import UserUpdate
 from app.db.deps import UserRepo
 from app.schemas.common import ApiResponse
 from app.schemas.pagination import PageResult
@@ -46,3 +52,15 @@ async def get_user(user_id: int, repo: UserRepo) -> ApiResponse[dict]:
     """根据用户 id 查询记录。"""
     user = await repo.get_one_by_id(user_id)
     return await response_one(user, not_found_message="用户不存在")
+
+
+@router.put("/{user_id}", response_model=ApiResponse[dict])
+async def update_user(
+    user_id: int,
+    body: UserUpdate,
+    repo: UserRepo,
+) -> ApiResponse[dict]:
+    """更新 c_users 表指定 id 的记录（部分字段）。"""
+    data = body.model_dump(exclude_unset=True)
+    user = await repo.update_by_id(user_id, data)
+    return await response_updated(user, not_found_message="用户不存在")

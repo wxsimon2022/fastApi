@@ -40,6 +40,16 @@ async def response_list(
     return success(data=result)
 
 
+async def response_updated(
+    item: dict[str, Any] | None,
+    *,
+    not_found_message: str = "记录不存在",
+) -> ApiResponse[dict]:
+    if item is None:
+        raise AppException(not_found_message, code=404)
+    return success(data=item, message="更新成功")
+
+
 async def response_by_field(
     repo: T,
     query: FieldQuery,
