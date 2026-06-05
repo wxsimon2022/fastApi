@@ -3,8 +3,8 @@ from decimal import Decimal
 from typing import Any
 
 
-def serialize_row(row: Any) -> dict[str, Any]:
-    """将数据库行转为可 JSON 序列化的 dict。"""
+def row_to_dict(row: Any) -> dict[str, Any]:
+    """将 SQLAlchemy RowMapping 转为可 JSON 序列化的 dict。"""
     data = dict(row)
     for key, value in data.items():
         if isinstance(value, (datetime, date)):

@@ -79,7 +79,13 @@ myStu/
     │   ├── router.py       # v1 路由聚合
     │   └── endpoints/      # 具体接口
     ├── core/
-    │   └── exceptions.py   # 业务异常与全局处理
+    │   ├── exceptions.py   # 业务异常
+    │   └── db_handlers.py  # 数据库异常
+    ├── db/
+    │   ├── database.py     # Database 组件（连接池、反射表）
+    │   ├── deps.py         # get_db / UserRepo 依赖注入
+    │   ├── tables.py       # 表名常量
+    │   └── repositories/   # 数据访问层
     └── schemas/
         └── common.py       # 统一响应模型 ApiResponse
 ```
@@ -110,7 +116,7 @@ cp .env.example .env
 
 数据库连接串由上述 `DB_*` 变量自动拼接，无需单独配置 `DATABASE_URL`。
 
-业务表名在代码中维护（见 `app/db/tables.py`），如用户表 `o_users`、业务表前缀 `c_`。
+业务表名在代码中维护（见 `app/db/tables.py`），如用户表 `c_users`、业务表前缀 `c_`。
 
 ## API 接口
 
@@ -118,7 +124,7 @@ cp .env.example .env
 |------|------|------|
 | GET | `/` | 欢迎信息（统一响应格式） |
 | GET | `/api/v1/health` | 健康检查 |
-| GET | `/api/v1/users/1` | 测试：查询 `o_users` 中 id=1 的用户 |
+| GET | `/api/v1/users/1` | 测试：查询 `c_users` 中 id=1 的用户 |
 
 所有接口（含参数校验失败、HTTP 异常）均返回 `code` → `data` → `message` 顺序的 JSON。
 
@@ -168,7 +174,16 @@ from app.api.v1.endpoints import health, users
 api_router.include_router(users.router)
 ```
 
-3. 复杂请求/响应体可放在 `app/schemas/` 中定义 Pydantic 模型。
+3. 需要查库时，在 `app/db/repositories/` 新增 Repository，在 `app/db/deps.py` 注册依赖，接口中注入使用：
+
+```python
+from app.db.deps import UserRepo
+
+@router.get("/users/1")
+async def get_user(repo: UserRepo):
+    user = await repo.get_by_id(1)
+    ...
+```
 
 ## 业务异常
 
