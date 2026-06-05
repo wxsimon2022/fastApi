@@ -2,11 +2,11 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from app.api.helpers import response_field_lookup, response_list, response_one
+from app.api.helpers import response_by_field, response_list, response_one
 from app.db.deps import UserRepo
 from app.schemas.common import ApiResponse
 from app.schemas.pagination import PageResult
-from app.schemas.query import FieldParams, PageParams
+from app.schemas.query import FieldParams, PageParams, build_field_query
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -26,7 +26,7 @@ async def list_users(
 
 @router.get("/lookup", response_model=ApiResponse[Any])
 async def lookup_user(
-    field: FieldParams,
+    lookup: FieldParams,
     pagination: PageParams,
     repo: UserRepo,
 ) -> ApiResponse[Any]:
@@ -37,15 +37,8 @@ async def lookup_user(
     - `type=id`   仅返回 `{"id": 1}`
     - `type=list` 分页返回列表
     """
-    return await response_field_lookup(
-        repo,
-        field=field.field,
-        value=field.value,
-        lookup_type=field.lookup_type,
-        page=pagination.page,
-        page_size=pagination.page_size,
-        not_found_message="用户不存在",
-    )
+    query = build_field_query(lookup, pagination)
+    return await response_by_field(repo, query, not_found_message="用户不存在")
 
 
 @router.get("/{user_id}", response_model=ApiResponse[dict])

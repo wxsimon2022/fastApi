@@ -36,3 +36,19 @@ class FieldLookupParams:
 
 FieldParams = Annotated[FieldLookupParams, Depends()]
 
+
+def build_field_query(
+    lookup: FieldLookupParams,
+    pagination: PaginationParams,
+) -> "FieldQuery":
+    from app.db.field_query import FieldQuery
+
+    return FieldQuery.create(
+        field=lookup.field,
+        value=lookup.value,
+        mode=lookup.lookup_type,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
+
+

@@ -83,6 +83,7 @@ myStu/
     │   └── db_handlers.py  # 数据库异常
     ├── db/
     │   ├── database.py     # Database 组件（连接池、反射表）
+    │   ├── field_query.py  # FieldQuery / by_field 按字段查询
     │   ├── deps.py         # get_db / Repository 工厂
     │   ├── tables.py       # 表名常量
     │   └── repositories/
@@ -202,19 +203,31 @@ async def get_user(user_id: int, repo: UserRepo):
     return await response_one(user, not_found_message="用户不存在")
 ```
 
-`BaseRepository` 提供：
-- `get_one_by_id(id)` / `get_one_by(field, value)` — 单条
-- `get_id_by(field, value)` — 仅查主键
-- `get_list(page, page_size, **filters)` — 分页列表
-- `get_list_by(field, value, page, page_size)` — 按字段分页
-- `get_all_by(field, value, limit)` — 按字段列表（不分页）
+按字段查询（Repository 层）：
 
-接口 helper（`app/api/helpers.py`）：
-- `response_one` / `response_id` / `response_list`
-- `response_one_by` / `response_id_by` / `response_list_by`
-- `response_field_lookup` — 按 `type=one|list|id` 统一分发
+```python
+# 链式
+user = await repo.by_field("mobile", "13800138000").one()
+user_id = await repo.by_field("mobile", "13800138000").id()
+page = await repo.by_field("status", 1).page(page=1, page_size=10)
 
-按字段查询示例：
+# 统一对象
+query = FieldQuery.create(field="mobile", value="13800138000", mode="one")
+result = await repo.query_field(query)
+```
+
+按字段查询（接口层）：
+
+```python
+query = build_field_query(lookup, pagination)
+return await response_by_field(repo, query, not_found_message="用户不存在")
+```
+
+`BaseRepository` 还提供：
+- `get_one_by_id(id)` — 按主键查单条
+- `get_list(page, page_size)` — 分页列表
+
+HTTP 示例：
 
 ```
 GET /api/v1/users/lookup?field=mobile&value=13800138000&type=one
