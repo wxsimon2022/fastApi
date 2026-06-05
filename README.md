@@ -107,10 +107,10 @@ cp .env.example .env
 | `DB_USER` | 数据库用户名 |
 | `DB_PASSWORD` | 数据库密码 |
 | `DB_NAME` | 数据库名 |
-| `TABLE_PREFIX` | 业务表前缀，如 `c_` |
-| `TABLE_USERS` | 用户表名，如 `o_users` |
 
 数据库连接串由上述 `DB_*` 变量自动拼接，无需单独配置 `DATABASE_URL`。
+
+业务表名在代码中维护（见 `app/db/tables.py`），如用户表 `o_users`、业务表前缀 `c_`。
 
 ## API 接口
 
@@ -118,6 +118,7 @@ cp .env.example .env
 |------|------|------|
 | GET | `/` | 欢迎信息（统一响应格式） |
 | GET | `/api/v1/health` | 健康检查 |
+| GET | `/api/v1/users/1` | 测试：查询 `o_users` 中 id=1 的用户 |
 
 所有接口（含参数校验失败、HTTP 异常）均返回 `code` → `data` → `message` 顺序的 JSON。
 

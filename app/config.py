@@ -26,9 +26,6 @@ class Settings(BaseSettings):
     db_password: str
     db_name: str
 
-    table_prefix: str
-    table_users: str
-
     @property
     def database_url(self) -> str:
         user = quote_plus(self.db_user)

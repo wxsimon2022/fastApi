@@ -20,9 +20,11 @@ from app.schemas.common import ApiResponse, success
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     init_db(settings.database_url, echo=settings.debug)
+    routes = [getattr(r, "path", None) for r in app.routes if getattr(r, "path", None)]
+    print(f"[{settings.app_name}] 已注册路由: {', '.join(sorted(r for r in routes if r))}")
     yield
     await close_db()
 
