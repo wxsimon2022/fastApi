@@ -27,10 +27,10 @@ cp .env.example .env
 python main.py
 ```
 
-也可直接使用 uvicorn：
+也可直接使用 uvicorn（需先 `export $(grep -v '^#' .env | xargs)` 或自行传入环境变量）：
 
 ```bash
-uvicorn app.main:app --reload --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
+uvicorn app.main:app --reload --host $HOST --port $PORT
 ```
 
 服务监听地址由 `.env` 中 `HOST`、`PORT` 决定，默认 `http://127.0.0.1:8000`。
@@ -57,7 +57,7 @@ docker compose down
 
 ```bash
 docker build -t mystu-api .
-docker run -d --name mystu-api --env-file .env -p ${PORT:-8000}:${PORT:-8000} mystu-api
+docker run -d --name mystu-api --env-file .env -p ${PORT}:${PORT} mystu-api
 ```
 
 > 修改代码后必须**完全停止**旧进程再启动。若仍看到 `code, message, data` 或根路径只有 `{"message":...}`，说明 8000 端口上还在跑旧服务。可先执行：`lsof -iTCP:8000 -sTCP:LISTEN` 查 PID，再 `kill <PID>`。
@@ -86,17 +86,31 @@ myStu/
 
 ## 配置说明
 
-通过 `.env` 或环境变量覆盖默认值（见 `.env.example`）：
+**所有配置均从 `.env` 读取**，代码中不设默认值。启动前请复制并修改：
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `APP_NAME` | 应用名称 | `myStu API` |
-| `APP_VERSION` | 版本号 | `0.1.0` |
-| `DEBUG` | 调试模式（影响热重载等） | `false` |
-| `HOST` | 监听地址 | `0.0.0.0` |
-| `PORT` | 监听端口 | `8000` |
-| `API_PREFIX` | API 路径前缀 | `/api/v1` |
-| `CORS_ORIGINS` | 允许的跨域来源（JSON 数组） | `["*"]` |
+```bash
+cp .env.example .env
+```
+
+| 变量 | 说明 |
+|------|------|
+| `APP_NAME` | 应用名称 |
+| `APP_VERSION` | 版本号 |
+| `DEBUG` | 调试模式（影响热重载、SQL 日志） |
+| `HOST` | 监听地址 |
+| `PORT` | 监听端口 |
+| `API_PREFIX` | API 路径前缀 |
+| `CORS_ORIGINS` | 跨域来源（JSON 数组，如 `["*"]`） |
+| `DB_DRIVER` | 数据库驱动，如 `mysql+aiomysql` |
+| `DB_HOST` | 数据库主机 |
+| `DB_PORT` | 数据库端口 |
+| `DB_USER` | 数据库用户名 |
+| `DB_PASSWORD` | 数据库密码 |
+| `DB_NAME` | 数据库名 |
+| `TABLE_PREFIX` | 业务表前缀，如 `c_` |
+| `TABLE_USERS` | 用户表名，如 `o_users` |
+
+数据库连接串由上述 `DB_*` 变量自动拼接，无需单独配置 `DATABASE_URL`。
 
 ## API 接口
 

@@ -14,13 +14,17 @@ from app.core.exceptions import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.db.session import close_db, init_db
 from app.middleware.api_response import ApiResponseOrderMiddleware
 from app.schemas.common import ApiResponse, success
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    init_db(settings.database_url, echo=settings.debug)
     yield
+    await close_db()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
