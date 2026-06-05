@@ -83,9 +83,11 @@ myStu/
     │   └── db_handlers.py  # 数据库异常
     ├── db/
     │   ├── database.py     # Database 组件（连接池、反射表）
-    │   ├── deps.py         # get_db / UserRepo 依赖注入
+    │   ├── deps.py         # get_db / Repository 工厂
     │   ├── tables.py       # 表名常量
-    │   └── repositories/   # 数据访问层
+    │   └── repositories/
+    │       ├── base.py     # BaseRepository（get_one / get_list）
+    │       └── user.py
     └── schemas/
         └── common.py       # 统一响应模型 ApiResponse
 ```
@@ -124,7 +126,9 @@ cp .env.example .env
 |------|------|------|
 | GET | `/` | 欢迎信息（统一响应格式） |
 | GET | `/api/v1/health` | 健康检查 |
-| GET | `/api/v1/users/1` | 测试：查询 `c_users` 中 id=1 的用户 |
+| GET | `/api/v1/users` | 分页查询用户，参数 `page`、`page_size` |
+| GET | `/api/v1/users/lookup` | 按字段查询，参数 `field`、`value`、`type`（one/list/id） |
+| GET | `/api/v1/users/{user_id}` | 根据 id 查询用户 |
 
 所有接口（含参数校验失败、HTTP 异常）均返回 `code` → `data` → `message` 顺序的 JSON。
 
@@ -174,15 +178,48 @@ from app.api.v1.endpoints import health, users
 api_router.include_router(users.router)
 ```
 
-3. 需要查库时，在 `app/db/repositories/` 新增 Repository，在 `app/db/deps.py` 注册依赖，接口中注入使用：
+3. 需要查库时，继承 `BaseRepository` 并在 `deps.py` 注册工厂，接口中使用统一 helper：
 
 ```python
-from app.db.deps import UserRepo
+# app/db/repositories/order.py
+from app.db.repositories.base import BaseRepository
 
-@router.get("/users/1")
-async def get_user(repo: UserRepo):
-    user = await repo.get_by_id(1)
-    ...
+class OrderRepository(BaseRepository):
+    pass
+
+# app/db/deps.py
+get_order_repository = repository_factory(OrderRepository, lambda: database.orders_table)
+OrderRepo = Annotated[OrderRepository, Depends(get_order_repository)]
+
+# app/api/v1/endpoints/users.py
+@router.get("")
+async def list_users(repo: UserRepo, page: PageParams):
+    return await response_list(repo, page=page.page, page_size=page.page_size)
+
+@router.get("/{user_id}")
+async def get_user(user_id: int, repo: UserRepo):
+    user = await repo.get_one_by_id(user_id)
+    return await response_one(user, not_found_message="用户不存在")
+```
+
+`BaseRepository` 提供：
+- `get_one_by_id(id)` / `get_one_by(field, value)` — 单条
+- `get_id_by(field, value)` — 仅查主键
+- `get_list(page, page_size, **filters)` — 分页列表
+- `get_list_by(field, value, page, page_size)` — 按字段分页
+- `get_all_by(field, value, limit)` — 按字段列表（不分页）
+
+接口 helper（`app/api/helpers.py`）：
+- `response_one` / `response_id` / `response_list`
+- `response_one_by` / `response_id_by` / `response_list_by`
+- `response_field_lookup` — 按 `type=one|list|id` 统一分发
+
+按字段查询示例：
+
+```
+GET /api/v1/users/lookup?field=mobile&value=13800138000&type=one
+GET /api/v1/users/lookup?field=status&value=1&type=list&page=1&page_size=10
+GET /api/v1/users/lookup?field=mobile&value=13800138000&type=id
 ```
 
 ## 业务异常

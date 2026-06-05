@@ -1,22 +1,55 @@
+from typing import Any
+
 from fastapi import APIRouter
 
-from app.core.exceptions import AppException
+from app.api.helpers import response_field_lookup, response_list, response_one
 from app.db.deps import UserRepo
-from app.schemas.common import ApiResponse, success
+from app.schemas.common import ApiResponse
+from app.schemas.pagination import PageResult
+from app.schemas.query import FieldParams, PageParams
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/1", response_model=ApiResponse[dict])
-async def get_user_one(repo: UserRepo) -> ApiResponse[dict]:
-    """测试接口：查询用户表 id=1 的记录。"""
-    user = await repo.get_by_id(1)
-    if user is None:
-        raise AppException("用户不存在", code=404)
-    return success(data=user)
+@router.get("", response_model=ApiResponse[PageResult[dict]])
+async def list_users(
+    pagination: PageParams,
+    repo: UserRepo,
+) -> ApiResponse[PageResult[dict]]:
+    """分页查询用户列表。"""
+    return await response_list(
+        repo,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
-@router.get("/test", response_model=ApiResponse[dict], include_in_schema=False)
-async def get_user_test(repo: UserRepo) -> ApiResponse[dict]:
-    """兼容旧路径。"""
-    return await get_user_one(repo)
+@router.get("/lookup", response_model=ApiResponse[Any])
+async def lookup_user(
+    field: FieldParams,
+    pagination: PageParams,
+    repo: UserRepo,
+) -> ApiResponse[Any]:
+    """
+    按字段查询示例。
+
+    - `type=one`  返回单条记录
+    - `type=id`   仅返回 `{"id": 1}`
+    - `type=list` 分页返回列表
+    """
+    return await response_field_lookup(
+        repo,
+        field=field.field,
+        value=field.value,
+        lookup_type=field.lookup_type,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        not_found_message="用户不存在",
+    )
+
+
+@router.get("/{user_id}", response_model=ApiResponse[dict])
+async def get_user(user_id: int, repo: UserRepo) -> ApiResponse[dict]:
+    """根据用户 id 查询记录。"""
+    user = await repo.get_one_by_id(user_id)
+    return await response_one(user, not_found_message="用户不存在")
