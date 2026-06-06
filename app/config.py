@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     log_level: str
     log_file: str
 
+    jwt_secret_key: str
+    jwt_algorithm: str
+    jwt_access_token_expire_minutes: int
+
     @property
     def database_url(self) -> str:
         user = quote_plus(self.db_user)
