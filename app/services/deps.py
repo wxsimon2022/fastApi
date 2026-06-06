@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.db.deps import UserRepo
 from app.redis.deps import RedisCacheDep
 from app.services.auth_service import AuthService
+from app.services.concurrent_service import ConcurrentQueryService
 from app.services.user_service import UserService
 
 
@@ -19,5 +20,13 @@ def get_user_service(repo: UserRepo, cache: RedisCacheDep) -> UserService:
     return UserService(repo=repo, cache=cache, settings=get_settings())
 
 
+def get_concurrent_query_service() -> ConcurrentQueryService:
+    return ConcurrentQueryService()
+
+
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+ConcurrentQueryServiceDep = Annotated[
+    ConcurrentQueryService,
+    Depends(get_concurrent_query_service),
+]

@@ -18,6 +18,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import get_logger, setup_logging
 from app.db.database import database
+from app.db.sync_database import shutdown_sync_engine
 from app.redis.client import redis_client
 from app.middleware.api_response import ApiResponseOrderMiddleware
 from app.schemas.common import ApiResponse, success
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("应用关闭")
     await redis_client.shutdown()
     await database.shutdown()
+    shutdown_sync_engine()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
