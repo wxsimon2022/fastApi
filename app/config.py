@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     db_password: str
     db_name: str
 
+    redis_host: str
+    redis_port: int
+    redis_password: str
+    redis_db: int
+    redis_cache_ttl: int
+
     @property
     def database_url(self) -> str:
         user = quote_plus(self.db_user)
@@ -34,6 +40,14 @@ class Settings(BaseSettings):
             f"{self.db_driver}://{user}:{password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @property
+    def redis_url(self) -> str:
+        if self.redis_password:
+            auth = f":{quote_plus(self.redis_password)}@"
+        else:
+            auth = ""
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 
 @lru_cache
