@@ -3,6 +3,30 @@ from typing import Annotated, Literal
 from fastapi import Depends, Query
 
 
+def parse_columns(fields: str | None) -> list[str] | None:
+    """解析 fields=id,username 为列名列表。"""
+    if not fields:
+        return None
+    columns = [item.strip() for item in fields.split(",") if item.strip()]
+    return columns or None
+
+
+class ColumnsParams:
+    """指定查询返回字段。"""
+
+    def __init__(
+        self,
+        fields: str | None = Query(
+            None,
+            description="返回字段，逗号分隔，如 id,username,is_admin；不传则返回全部字段",
+        ),
+    ) -> None:
+        self.columns = parse_columns(fields)
+
+
+ColumnsQuery = Annotated[ColumnsParams, Depends()]
+
+
 class PaginationParams:
     def __init__(
         self,

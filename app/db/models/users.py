@@ -7,9 +7,9 @@ from app.db.base import Base
 
 
 class Users(Base):
-    """用户表 o_users。"""
+    """用户表 c_users。"""
 
-    __tablename__ = "o_users"
+    __tablename__ = "c_users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(64))

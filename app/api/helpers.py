@@ -29,14 +29,30 @@ async def response_id(
     return success(data={"id": record_id})
 
 
+async def response_all(
+    repo: T,
+    *,
+    columns: list[str] | None = None,
+    **filters: Any,
+) -> ApiResponse[list]:
+    items = await repo.get_all(columns=columns, **filters)
+    return success(data=items)
+
+
 async def response_list(
     repo: T,
     *,
     page: int,
     page_size: int,
+    columns: list[str] | None = None,
     **filters: Any,
 ) -> ApiResponse[PageResult[dict]]:
-    result = await repo.get_list(page=page, page_size=page_size, **filters)
+    result = await repo.get_list(
+        page=page,
+        page_size=page_size,
+        columns=columns,
+        **filters,
+    )
     return success(data=result)
 
 

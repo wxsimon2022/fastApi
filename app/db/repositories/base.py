@@ -35,6 +35,14 @@ class BaseRepository:
         if field not in self._table.c:
             raise AppException(f"字段不存在: {field}", code=400)
 
+    def _build_select(self, columns: list[str] | None = None):
+        """指定返回列；不传则 SELECT *。"""
+        if not columns:
+            return select(self._table)
+        for col in columns:
+            self._ensure_field(col)
+        return select(*[self._table.c[col] for col in columns])
+
     def _apply_filters(self, stmt: Select[Any], filters: dict[str, Any]) -> Select[Any]:
         for key, value in filters.items():
             if value is not None:
@@ -51,13 +59,23 @@ class BaseRepository:
     ) -> dict[str, Any] | PageResult[dict[str, Any]] | list[dict[str, Any]] | int | None:
         return await self.by_field(query.field, query.value).run(query)
 
-    async def get_one(self, **filters: Any) -> dict[str, Any] | None:
-        stmt = self._apply_filters(select(self._table), filters)
+    async def get_one(
+        self,
+        *,
+        columns: list[str] | None = None,
+        **filters: Any,
+    ) -> dict[str, Any] | None:
+        stmt = self._apply_filters(self._build_select(columns), filters)
         row = (await self._session.execute(stmt)).mappings().first()
         return row_to_dict(row) if row else None
 
-    async def get_one_by_id(self, record_id: int) -> dict[str, Any] | None:
-        return await self.by_field(self.pk_column, record_id).one()
+    async def get_one_by_id(
+        self,
+        record_id: int,
+        *,
+        columns: list[str] | None = None,
+    ) -> dict[str, Any] | None:
+        return await self.get_one(columns=columns, **{self.pk_column: record_id})
 
     async def get_one_by(self, field: str, value: Any) -> dict[str, Any] | None:
         return await self.by_field(field, value).one()
@@ -88,11 +106,23 @@ class BaseRepository:
     ) -> PageResult[dict[str, Any]]:
         return await self.by_field(field, value).page(page=page, page_size=page_size)
 
+    async def get_all(
+        self,
+        *,
+        columns: list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """查询全部记录（不分页），可选指定返回列。"""
+        stmt = self._apply_filters(self._build_select(columns), filters)
+        rows = (await self._session.execute(stmt)).mappings().all()
+        return [row_to_dict(row) for row in rows]
+
     async def get_list(
         self,
         *,
         page: int = 1,
         page_size: int = 10,
+        columns: list[str] | None = None,
         **filters: Any,
     ) -> PageResult[dict[str, Any]]:
         count_stmt = self._apply_filters(
@@ -101,7 +131,7 @@ class BaseRepository:
         )
         total = (await self._session.execute(count_stmt)).scalar_one()
 
-        list_stmt = self._apply_filters(select(self._table), filters)
+        list_stmt = self._apply_filters(self._build_select(columns), filters)
         list_stmt = list_stmt.offset((page - 1) * page_size).limit(page_size)
         rows = (await self._session.execute(list_stmt)).mappings().all()
 
