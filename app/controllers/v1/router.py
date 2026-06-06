@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, health, redis_demo, users
+from app.controllers.v1 import auth, health, redis_demo, users
 
 api_router = APIRouter()
 api_router.include_router(health.router)

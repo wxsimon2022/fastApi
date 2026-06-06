@@ -11,8 +11,11 @@ logger = get_logger(__name__)
 @router.get("/health", response_model=ApiResponse[dict])
 async def health_check() -> ApiResponse[dict]:
     settings = get_settings()
-    logger.info("[服务正常]health check, app=%s version=%s", settings.app_name, settings.app_version)
-    logger.debug("health check detail, version=%s", settings.app_version)
+    logger.info(
+        "[服务正常]health check, app=%s version=%s",
+        settings.app_name,
+        settings.app_version,
+    )
     return success(
         data={
             "status": "ok",

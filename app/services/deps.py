@@ -1,0 +1,23 @@
+"""Service 层依赖注入。"""
+
+from typing import Annotated
+
+from fastapi import Depends
+
+from app.config import get_settings
+from app.db.deps import UserRepo
+from app.redis.deps import RedisCacheDep
+from app.services.auth_service import AuthService
+from app.services.user_service import UserService
+
+
+def get_auth_service(repo: UserRepo, cache: RedisCacheDep) -> AuthService:
+    return AuthService(repo=repo, cache=cache, settings=get_settings())
+
+
+def get_user_service(repo: UserRepo, cache: RedisCacheDep) -> UserService:
+    return UserService(repo=repo, cache=cache, settings=get_settings())
+
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
