@@ -18,7 +18,7 @@ class BaseRepository:
     每个子类绑定一个 Model（一表一 Model，表名在 Model 上声明）::
 
         class UserRepository(BaseRepository):
-            model = User
+            model = Users
     """
 
     model: ClassVar[type[DeclarativeBase]]

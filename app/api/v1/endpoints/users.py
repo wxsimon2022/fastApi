@@ -79,7 +79,7 @@ async def update_user(
     repo: UserRepo,
     cache: RedisCacheDep,
 ) -> ApiResponse[dict]:
-    """更新 c_users 表指定 id 的记录（部分字段）。"""
+    """更新 o_users 表指定 id 的记录（部分字段）。"""
     data = body.model_dump(exclude_unset=True)
     user = await repo.update_by_id(user_id, data)
     if user is not None:

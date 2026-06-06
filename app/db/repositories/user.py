@@ -1,8 +1,8 @@
-from app.db.models.user import User
+from app.db.models.users import Users
 from app.db.repositories.base import BaseRepository
 
 
 class UserRepository(BaseRepository):
-    """用户表 c_users。"""
+    """用户表 o_users。"""
 
-    model = User
+    model = Users
