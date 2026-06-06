@@ -73,16 +73,19 @@ myStu/
     │   ├── router.py            # v1 路由聚合
     │   ├── auth.py              # 登录 / 登出 / 鉴权示例
     │   ├── users.py             # 用户接口
+    │   ├── demo.py              # 并发查库示例（多线程 / asyncio）
     │   ├── health.py            # 健康检查
     │   └── redis_demo.py        # Redis 示例接口
     │
     ├── services/                # 业务逻辑层
     │   ├── auth_service.py      # 登录、JWT 验签、登出
     │   ├── user_service.py      # 用户查询、缓存、更新
+    │   ├── concurrent_service.py # 多线程 / asyncio 并行查库
     │   └── deps.py              # Service 依赖注入
     │
     ├── db/
-    │   ├── database.py          # 异步连接池
+    │   ├── database.py          # 异步连接池（aiomysql）
+    │   ├── sync_database.py     # 同步连接池（pymysql，供线程池使用）
     │   ├── deps.py              # DbSession / UserRepo 注入
     │   ├── models/              # M 数据模型（ORM，一表一 Model）
     │   │   └── users.py
@@ -243,6 +246,53 @@ GET /api/v1/users/lookup?field=username&value=admin&type=id
 | DELETE | `/api/v1/redis/{key}` | 删除键 |
 | POST | `/api/v1/redis/examples/run` | 运行 Redis 命令示例 |
 
+### 并发查库示例
+
+| 方法 | 路径 | 说明 | 鉴权 |
+|------|------|------|------|
+| GET | `/api/v1/demo/concurrent-users` | 并行按 id 查用户 | 无 |
+
+**请求参数：**
+
+| 参数 | 说明 |
+|------|------|
+| `ids` | 逗号分隔的用户 id，如 `1,2,3`（单次最多 20 个） |
+| `mode=thread` | **多线程**：`ThreadPoolExecutor` + 同步 Session（每线程独立连接） |
+| `mode=async` | **协程并发**：`asyncio.gather`（FastAPI 常规写法，对比用） |
+
+**示例：**
+
+```http
+GET /api/v1/demo/concurrent-users?ids=1,2,3&mode=thread
+GET /api/v1/demo/concurrent-users?ids=1,2,3&mode=async
+```
+
+**返回示例：**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "mode": "thread_pool",
+    "description": "ThreadPoolExecutor + 同步 Session，每线程独立连接",
+    "worker_count": 3,
+    "query_count": 3,
+    "items": [
+      {"user_id": 1, "found": true, "user": {"id": 1, "username": "admin"}},
+      {"user_id": 2, "found": true, "user": {"id": 2, "username": "wangxing"}}
+    ]
+  },
+  "message": "ok"
+}
+```
+
+**实现说明：**
+
+- 主链路使用异步 SQLAlchemy（`mysql+aiomysql`），`AsyncSession` **不能跨线程共享**
+- 多线程模式在线程池内使用同步驱动（`mysql+pymysql`），每次查询独立 `with session()`
+- 日常业务推荐 `mode=async`；阻塞驱动或 CPU 密集场景可参考 `mode=thread`
+- 相关代码：`app/services/concurrent_service.py`、`app/db/sync_database.py`
+
 ## 响应格式
 
 所有接口（含参数校验失败、HTTP 异常）均返回固定顺序 JSON：
@@ -381,7 +431,8 @@ raise AppException("未登录，请先获取 Token", code=401)
 - [FastAPI](https://fastapi.tiangolo.com/) — Web 框架
 - [Uvicorn](https://www.uvicorn.org/) — ASGI 服务器
 - [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) — 配置管理
-- [SQLAlchemy](https://www.sqlalchemy.org/) — 异步 ORM
+- [SQLAlchemy](https://www.sqlalchemy.org/) — 异步 ORM（aiomysql）+ 同步驱动（pymysql，线程池查库）
 - [Redis](https://redis.io/) — 缓存与 Token 会话
 - [PyJWT](https://pyjwt.readthedocs.io/) — JWT 签发与验签
 - [Passlib](https://passlib.readthedocs.io/) — bcrypt 密码哈希
+- [PyMySQL](https://pypi.org/project/PyMySQL/) — 同步 MySQL 驱动（多线程查库示例）
