@@ -4,6 +4,9 @@ from pydantic import BaseModel, Field, model_serializer
 
 T = TypeVar("T")
 
+# 业务成功状态码（与 HTTP 200 保持一致）
+SUCCESS_CODE = 200
+
 
 def api_body(code: int, data: Any = None, message: str = "ok") -> dict[str, Any]:
     """构造固定字段顺序的响应体：code → data → message"""
@@ -11,7 +14,7 @@ def api_body(code: int, data: Any = None, message: str = "ok") -> dict[str, Any]
 
 
 class ApiResponse(BaseModel, Generic[T]):
-    code: int = Field(0, description="业务状态码，0 表示成功")
+    code: int = Field(SUCCESS_CODE, description="业务状态码，200 表示成功")
     data: T | None = Field(None, description="业务数据")
     message: str = Field("ok", description="提示信息")
 
@@ -23,7 +26,7 @@ class ApiResponse(BaseModel, Generic[T]):
 def success(
     data: T | None = None,
     message: str = "ok",
-    code: int = 0,
+    code: int = SUCCESS_CODE,
 ) -> ApiResponse[T]:
     return ApiResponse(code=code, data=data, message=message)
 

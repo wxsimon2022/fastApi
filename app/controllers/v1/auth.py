@@ -1,7 +1,5 @@
 """Controller：只负责入参 / 出参，业务逻辑在 services/。"""
 
-from typing import Any
-
 from fastapi import APIRouter
 
 from app.auth.deps import CurrentUser, OptionalUser
@@ -40,8 +38,8 @@ async def demo_public(service: AuthServiceDep) -> ApiResponse[dict]:
 
 @router.get("/demo/protected", response_model=ApiResponse[dict])
 async def demo_protected(
-    user: CurrentUser,
-    service: AuthServiceDep,
+        user: CurrentUser,
+        service: AuthServiceDep,
 ) -> ApiResponse[dict]:
     """示例：必须验签 — 参数声明 user: CurrentUser。"""
     return success(data=service.build_protected_demo(user))
@@ -49,8 +47,8 @@ async def demo_protected(
 
 @router.get("/demo/optional", response_model=ApiResponse[dict])
 async def demo_optional(
-    user: OptionalUser,
-    service: AuthServiceDep,
+        user: OptionalUser,
+        service: AuthServiceDep,
 ) -> ApiResponse[dict]:
     """示例：可选验签 — 参数声明 user: OptionalUser。"""
     return success(data=service.build_optional_demo(user))

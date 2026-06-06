@@ -33,6 +33,7 @@ class ApiResponseOrderMiddleware(BaseHTTPMiddleware):
             )
 
         from app.responses import encode_api_body
+        from app.schemas.common import SUCCESS_CODE
 
         if isinstance(payload, dict) and "code" in payload:
             ordered = encode_api_body(
@@ -41,7 +42,7 @@ class ApiResponseOrderMiddleware(BaseHTTPMiddleware):
                 payload.get("message", "ok"),
             )
         else:
-            code = 0 if response.status_code < 400 else response.status_code
+            code = SUCCESS_CODE if response.status_code < 400 else response.status_code
             ordered = encode_api_body(code, payload, "ok")
 
         headers = dict(response.headers)

@@ -271,7 +271,7 @@ GET /api/v1/demo/concurrent-users?ids=1,2,3&mode=async
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "data": {
     "mode": "thread_pool",
     "description": "ThreadPoolExecutor + 同步 Session，每线程独立连接",
@@ -299,13 +299,13 @@ GET /api/v1/demo/concurrent-users?ids=1,2,3&mode=async
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "data": {},
   "message": "ok"
 }
 ```
 
-- `code`：业务状态码，`0` 表示成功
+- `code`：业务状态码，`200` 表示成功
 - `data`：业务数据，可为 `null`
 - `message`：提示信息
 

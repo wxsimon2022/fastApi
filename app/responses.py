@@ -3,7 +3,7 @@ from typing import Any
 
 from starlette.responses import Response
 
-from app.schemas.common import api_body
+from app.schemas.common import SUCCESS_CODE, api_body
 
 
 def encode_api_body(code: int, data: Any = None, message: str = "ok") -> bytes:
@@ -20,7 +20,7 @@ class ApiJSONResponse(Response):
 
     def __init__(
         self,
-        code: int = 0,
+        code: int = SUCCESS_CODE,
         data: Any = None,
         message: str = "ok",
         status_code: int = 200,
@@ -33,7 +33,7 @@ class ApiJSONResponse(Response):
 
 
 def api_json(
-    code: int = 0,
+    code: int = SUCCESS_CODE,
     data: Any = None,
     message: str = "ok",
     status_code: int = 200,
