@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.config import get_settings
-from app.db.deps import UserRepo
+from app.db.deps import UserRepo, MessageRepo
 from app.redis.deps import RedisCacheDep
 from app.services.auth_service import AuthService
 from app.services.concurrent_service import ConcurrentQueryService
@@ -30,3 +30,12 @@ ConcurrentQueryServiceDep = Annotated[
     ConcurrentQueryService,
     Depends(get_concurrent_query_service),
 ]
+
+from app.services.messages_service import MessageService
+
+
+def get_messages_service(repo: MessageRepo) -> MessageService:
+    return MessageService(repo=repo)
+
+
+MessageServiceDep = Annotated[MessageService, Depends(get_messages_service)]

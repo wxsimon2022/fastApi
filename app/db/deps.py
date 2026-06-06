@@ -28,3 +28,7 @@ def repository_factory(repo_class: type[TRepo]):
 
 get_user_repository = repository_factory(UserRepository)
 UserRepo = Annotated[UserRepository, Depends(get_user_repository)]
+
+from app.db.repositories.messages import MessageRepository
+get_messages_repository = repository_factory(MessageRepository)
+MessageRepo = Annotated[MessageRepository, Depends(get_messages_repository)]
