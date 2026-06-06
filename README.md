@@ -1,4 +1,4 @@
-# simonFastAPI API
+# myStu API
 
 基于 [FastAPI](https://fastapi.tiangolo.com/) 的 Python Web API 框架，采用 **MVC 分层**、统一响应格式、异步 MySQL、Redis 缓存与 JWT 鉴权，便于扩展业务接口。
 
@@ -64,7 +64,9 @@ myStu/
 ├── scripts/
 │   ├── hash_password.py         # 生成 bcrypt 密码哈希
 │   ├── test_db.py               # 数据库连接测试
-│   └── test_redis.py            # Redis 连接测试
+│   ├── test_redis.py            # Redis 连接测试
+│   ├── scaffold_table.py        # 从 Model 自动生成建表 SQL
+│   └── sql/                     # 建表 SQL 脚本
 └── app/
     ├── main.py                  # 应用工厂 create_app()
     ├── config.py                # 配置（pydantic-settings，全部来自 .env）
@@ -73,6 +75,7 @@ myStu/
     │   ├── router.py            # v1 路由聚合
     │   ├── auth.py              # 登录 / 登出 / 鉴权示例
     │   ├── users.py             # 用户接口
+    │   ├── messages.py          # 消息接口
     │   ├── demo.py              # 并发查库示例（多线程 / asyncio）
     │   ├── health.py            # 健康检查
     │   └── redis_demo.py        # Redis 示例接口
@@ -80,44 +83,56 @@ myStu/
     ├── services/                # 业务逻辑层
     │   ├── auth_service.py      # 登录、JWT 验签、登出
     │   ├── user_service.py      # 用户查询、缓存、更新
-    │   ├── concurrent_service.py # 多线程 / asyncio 并行查库
+    │   ├── messages_service.py  # 消息业务逻辑
+    │   ├── concurrent_service.py# 多线程 / asyncio 并行查库
     │   └── deps.py              # Service 依赖注入
     │
     ├── db/
     │   ├── database.py          # 异步连接池（aiomysql）
     │   ├── sync_database.py     # 同步连接池（pymysql，供线程池使用）
-    │   ├── deps.py              # DbSession / UserRepo 注入
+    │   ├── deps.py              # DbSession / UserRepo / MessageRepo 注入
+    │   ├── base.py              # SQLAlchemy DeclarativeBase
+    │   ├── serializers.py       # 结果行序列化（datetime/Decimal/bytes → JSON）
+    │   ├── field_query.py       # 按字段查询（FieldQuery + FieldQueryExecutor）
     │   ├── models/              # M 数据模型（ORM，一表一 Model）
-    │   │   └── users.py
-    │   ├── repositories/        # 数据访问（Repository）
-    │   │   ├── base.py          # BaseRepository
-    │   │   └── user.py
-    │   └── field_query.py       # 按字段查询
+    │   │   ├── users.py         # c_users
+    │   │   ├── messages.py      # c_messages
+    │   │   └── conversations.py # c_conversations
+    │   └── repositories/        # 数据访问（Repository）
+    │       ├── base.py          # BaseRepository
+    │       ├── user.py          # UserRepository
+    │       ├── messages.py      # MessageRepository
+    │       └── conversations.py # ConversationRepository
     │
     ├── schemas/                 # V 入参 / 出参 DTO
-    │   ├── common.py            # ApiResponse、success()
+    │   ├── common.py            # ApiResponse、success()、fail()
     │   ├── auth.py              # LoginRequest、TokenData
     │   ├── user.py              # UserUpdate
+    │   ├── messages.py          # MessagesUpdate
+    │   ├── redis.py             # RedisSetBody
     │   ├── query.py             # 分页、fields、lookup 参数
-    │   └── pagination.py
+    │   └── pagination.py        # PageResult
     │
     ├── auth/
     │   └── deps.py              # CurrentUser / OptionalUser 鉴权依赖
     │
     ├── core/
     │   ├── security.py          # JWT 签发/解析、bcrypt 密码
-    │   ├── exceptions.py        # AppException
+    │   ├── exceptions.py        # AppException + 异常处理器
     │   ├── logging.py           # 日志（控制台 + 轮转文件）
-    │   └── db_handlers.py
+    │   └── db_handlers.py       # SQLAlchemy 异常处理器
     │
     ├── redis/
     │   ├── client.py            # Redis 连接
-    │   ├── operations.py        # RedisOps 命令封装
+    │   ├── operations.py        # RedisOps 命令封装（String/Hash/List/Set/ZSet）
+    │   ├── examples.py          # 各命令演示示例
     │   ├── keys.py              # 缓存 key 命名
-    │   └── deps.py              # RedisCacheDep
+    │   └── deps.py              # RedisOpsDep / RedisCacheDep 注入
     │
-    └── middleware/
-        └── api_response.py      # 统一 JSON 字段顺序 code → data → message
+    ├── middleware/
+    │   └── api_response.py      # 统一 JSON 字段顺序 code → data → message
+    │
+    └── responses.py             # ApiJSONResponse（Starlette Response）
 ```
 
 ### 分层职责
@@ -137,6 +152,18 @@ HTTP → Controller → Service → Repository → MySQL
                       ↓
                     Redis（缓存 / Token 会话）
 ```
+
+**包公共 API（`__all__` 导出）：**
+
+| 包 | 导出内容 |
+|----|----------|
+| `app.db` | `database`, `get_db`, `DbSession`, `UserRepo`, `MessageRepo` |
+| `app.core` | `AppException`, `get_logger`, `setup_logging`, `create_access_token`, `decode_access_token`, `hash_password`, `verify_password` |
+| `app.redis` | `RedisClient`, `redis_client`, `RedisOps`, `auth_token_key`, `user_cache_key` |
+| `app.middleware` | `ApiResponseOrderMiddleware` |
+| `app.schemas` | `ApiResponse`, `SUCCESS_CODE`, `api_body`, `fail`, `success` |
+| `app.db.models` | `Users`, `Messages`, `Conversations` |
+| `app.db.repositories` | `BaseRepository`, `UserRepository`, `MessageRepository`, `ConversationRepository`, `FieldQuery`, `FieldQueryExecutor`, `FieldQueryMode` |
 
 ## 配置说明
 
@@ -165,7 +192,13 @@ cp .env.example .env
 
 数据库连接串由 `DB_*` 变量自动拼接；Redis URL 由 `REDIS_*` 自动拼接。
 
-用户表 ORM：`app/db/models/users.py`，表名 `c_users`。
+### 现有数据表
+
+| 表名 | ORM 模型 | 说明 |
+|------|----------|------|
+| `c_users` | `Users` | 用户表，含 bcrypt 密码哈希 |
+| `c_messages` | `Messages` | 消息表，关联会话 |
+| `c_conversations` | `Conversations` | 会话表，关联用户 |
 
 ## API 接口
 
@@ -237,6 +270,16 @@ GET /api/v1/users/lookup?field=username&value=admin&type=id
 
 `type` 取值：`one`（单条）、`id`（仅返回 id）、`list`（分页列表）。
 
+### 消息
+
+| 方法 | 路径 | 说明 | 鉴权 |
+|------|------|------|------|
+| GET | `/api/v1/messages` | 分页列表，参数 `page`、`page_size`、`fields` | 无 |
+| GET | `/api/v1/messages/all` | 全量列表 | 无 |
+| GET | `/api/v1/messages/lookup` | 按字段查询，参数 `field`、`value`、`type` | 无 |
+| GET | `/api/v1/messages/{message_id}` | 按 id 查询 | 无 |
+| PUT | `/api/v1/messages/{message_id}` | 更新消息 | 无 |
+
 ### Redis 示例
 
 | 方法 | 路径 | 说明 |
@@ -244,7 +287,7 @@ GET /api/v1/users/lookup?field=username&value=admin&type=id
 | GET | `/api/v1/redis/{key}` | 读取字符串 |
 | PUT | `/api/v1/redis/{key}` | 写入字符串 |
 | DELETE | `/api/v1/redis/{key}` | 删除键 |
-| POST | `/api/v1/redis/examples/run` | 运行 Redis 命令示例 |
+| POST | `/api/v1/redis/examples/run` | 运行 Redis 命令示例（String / Hash / List / Set / ZSet） |
 
 ### 并发查库示例
 
@@ -309,6 +352,8 @@ GET /api/v1/demo/concurrent-users?ids=1,2,3&mode=async
 - `data`：业务数据，可为 `null`
 - `message`：提示信息
 
+中间件 `ApiResponseOrderMiddleware` 确保所有 JSON 响应（包括非 ApiResponse 格式）统一为该结构。对已经符合 `{code, data, message}` 格式的响应直接透传 body，避免不必要的 JSON 解析与重新序列化。
+
 ## 交互式文档
 
 启动服务后访问：
@@ -354,7 +399,6 @@ class OrderService:
         self._repo = repo
 
     async def create(self, data: dict) -> dict:
-        # 业务校验、组合多个 Repository 等
         return await self._repo.get_one_by_id(...)
 
 # app/services/deps.py
@@ -407,14 +451,34 @@ user = await repo.get_one(username="admin")
 page = await repo.get_list(page=1, page_size=10, columns=["id", "username"])
 items = await repo.get_all(columns=["id", "username"])
 
+# 更新
+result = await repo.update_by_id(1, {"username": "newname"})
+
 # 按字段链式查询
 user = await repo.by_field("username", "admin").one()
 user_id = await repo.by_field("username", "admin").id()
 page = await repo.by_field("is_admin", 1).page(page=1, page_size=10)
+items = await repo.by_field("role", "admin").all(limit=50)
 
 # 统一 FieldQuery 对象
 query = FieldQuery.create(field="username", value="admin", mode="one")
 result = await repo.query_field(query)
+```
+
+## Tools & Scripts
+
+```bash
+# 生成 bcrypt 密码哈希（用于 users.password_hash）
+.venv/bin/python scripts/hash_password.py 123456
+
+# 数据库连接测试
+.venv/bin/python scripts/test_db.py
+
+# Redis 连接测试
+.venv/bin/python scripts/test_redis.py
+
+# 从 ORM Model 自动生成建表 SQL
+.venv/bin/python scripts/scaffold_table.py
 ```
 
 ## 业务异常
@@ -425,6 +489,8 @@ from app.core.exceptions import AppException
 raise AppException("资源不存在", code=404)
 raise AppException("未登录，请先获取 Token", code=401)
 ```
+
+自定义异常处理器自动捕获 `AppException`、`RequestValidationError`、`HTTPException`、`SQLAlchemyError`，统一返回 `{code, data, message}` 格式。
 
 ## 依赖
 

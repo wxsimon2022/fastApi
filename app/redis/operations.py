@@ -203,6 +203,3 @@ class RedisOps:
         """ZREM name member [member ...] — 删除成员，返回删除数量。"""
         return await self._client.zrem(name, *members)
 
-
-# 兼容旧名
-RedisCache = RedisOps

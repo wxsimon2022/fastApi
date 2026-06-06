@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import database
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.user import UserRepository
+from app.db.repositories.messages import MessageRepository
 
 TRepo = TypeVar("TRepo", bound=BaseRepository)
 
@@ -29,6 +30,5 @@ def repository_factory(repo_class: type[TRepo]):
 get_user_repository = repository_factory(UserRepository)
 UserRepo = Annotated[UserRepository, Depends(get_user_repository)]
 
-from app.db.repositories.messages import MessageRepository
-get_messages_repository = repository_factory(MessageRepository)
-MessageRepo = Annotated[MessageRepository, Depends(get_messages_repository)]
+get_message_repository = repository_factory(MessageRepository)
+MessageRepo = Annotated[MessageRepository, Depends(get_message_repository)]

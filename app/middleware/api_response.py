@@ -22,6 +22,18 @@ class ApiResponseOrderMiddleware(BaseHTTPMiddleware):
             return response
 
         body = b"".join([chunk async for chunk in response.body_iterator])
+
+        # 快速路径：body 已经是 {code, data, message} 格式，跳过 JSON 解析+重新编码
+        if body.startswith(b'{"code":'):
+            headers = dict(response.headers)
+            headers.pop("content-length", None)
+            return Response(
+                content=body,
+                status_code=response.status_code,
+                headers=headers,
+                media_type="application/json",
+            )
+
         try:
             payload = json.loads(body)
         except (json.JSONDecodeError, UnicodeDecodeError):
