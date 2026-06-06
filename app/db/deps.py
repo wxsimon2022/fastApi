@@ -1,9 +1,8 @@
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator
 from typing import Annotated, TypeVar
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.schema import Table
 
 from app.db.database import database
 from app.db.repositories.base import BaseRepository
@@ -20,15 +19,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-def repository_factory(
-    repo_class: type[TRepo],
-    table_getter: Callable[[], Table],
-) -> Callable[..., TRepo]:
+def repository_factory(repo_class: type[TRepo]):
     def _get_repository(session: DbSession) -> TRepo:
-        return repo_class(session, table_getter())
+        return repo_class(session)
 
     return _get_repository
 
 
-get_user_repository = repository_factory(UserRepository, lambda: database.users_table)
+get_user_repository = repository_factory(UserRepository)
 UserRepo = Annotated[UserRepository, Depends(get_user_repository)]

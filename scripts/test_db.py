@@ -20,7 +20,7 @@ async def main() -> None:
 
     try:
         async for session in database.session():
-            repo = UserRepository(session, database.users_table)
+            repo = UserRepository(session)
 
             user = await repo.get_one_by_id(1)
             page = await repo.get_list(page=1, page_size=10)
