@@ -1,4 +1,4 @@
-# myStu API
+# simonFastAPI API
 
 基于 [FastAPI](https://fastapi.tiangolo.com/) 的 Python Web API 框架，采用 **MVC 分层**、统一响应格式、异步 MySQL、Redis 缓存与 JWT 鉴权，便于扩展业务接口。
 
