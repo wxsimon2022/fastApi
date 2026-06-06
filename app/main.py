@@ -16,6 +16,7 @@ from app.core.exceptions import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.core.logging import get_logger, setup_logging
 from app.db.database import database
 from app.redis.client import redis_client
 from app.middleware.api_response import ApiResponseOrderMiddleware
@@ -25,11 +26,14 @@ from app.schemas.common import ApiResponse, success
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    logger.info("应用启动: %s v%s", settings.app_name, settings.app_version)
+    logger.info("日志目录: %s/%s", settings.log_dir, settings.log_file)
     await database.startup(settings.database_url, echo=settings.debug)
     await redis_client.startup(settings.redis_url)
     routes = [getattr(r, "path", None) for r in app.routes if getattr(r, "path", None)]
-    print(f"[{settings.app_name}] 已注册路由: {', '.join(sorted(r for r in routes if r))}")
+    logger.info("已注册路由: %s", ", ".join(sorted(r for r in routes if r)))
     yield
+    logger.info("应用关闭")
     await redis_client.shutdown()
     await database.shutdown()
 
@@ -67,3 +71,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
+
+
+def _init_logging() -> None:
+    setup_logging(get_settings())
+
+
+_init_logging()
+logger = get_logger(__name__)

@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     redis_db: int
     redis_cache_ttl: int
 
+    log_dir: str
+    log_level: str
+    log_file: str
+
     @property
     def database_url(self) -> str:
         user = quote_plus(self.db_user)

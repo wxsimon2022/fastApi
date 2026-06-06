@@ -1,14 +1,18 @@
 from fastapi import APIRouter
 
 from app.config import get_settings
+from app.core.logging import get_logger
 from app.schemas.common import ApiResponse, success
 
 router = APIRouter(tags=["health"])
+logger = get_logger(__name__)
 
 
 @router.get("/health", response_model=ApiResponse[dict])
 async def health_check() -> ApiResponse[dict]:
     settings = get_settings()
+    logger.info("health check, app=%s", settings.app_name)
+    logger.debug("health check detail, version=%s", settings.app_version)
     return success(
         data={
             "status": "ok",
