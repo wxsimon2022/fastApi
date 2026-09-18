@@ -125,3 +125,12 @@ class AuthService:
             "token_type": "bearer",
             "expires_in": expires_in,
         }
+
+    def build_test_demo(self)-> dict[str, Any]:
+
+        return {
+            "mode": "test",
+            "message": "已登录，返回用户信息",
+            "user_id": 0,
+            "username": "哈哈",
+        }
