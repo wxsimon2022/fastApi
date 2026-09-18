@@ -126,11 +126,13 @@ class AuthService:
             "expires_in": expires_in,
         }
 
-    def build_test_demo(self)-> dict[str, Any]:
-
+    async def build_test_demo(self) -> dict[str, Any]:
+        users = await self._repo.get_all(
+            columns=UserRepository.ALL_LIST_COLUMNS,
+        )
         return {
             "mode": "test",
             "message": "已登录，返回用户信息",
-            "user_id": 0,
+            "user_list": users,
             "username": "哈哈",
         }

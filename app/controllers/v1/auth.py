@@ -55,6 +55,6 @@ async def demo_optional(
 
 
 @router.get("/demo/test", response_model=ApiResponse[dict])
-async def demo_test( service: AuthServiceDep) -> ApiResponse[dict]:
+async def demo_test(service: AuthServiceDep) -> ApiResponse[dict]:
     """示例：测试 — 参数不声明 user。"""
-    return success(data=service.build_test_demo())
+    return success(data=await service.build_test_demo())
