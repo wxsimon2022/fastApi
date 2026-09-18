@@ -12,8 +12,8 @@ class Conversations(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer)
-    agent_name: Mapped[str] = mapped_column(String(32))
-    thread_id: Mapped[str] = mapped_column(String(64))
-    title: Mapped[str] = mapped_column(String(128))
-    created_at: Mapped[datetime] = mapped_column(DateTime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime)
+    agent_name: Mapped[str] = mapped_column(String(32),comment="对话的代理人名称")
+    thread_id: Mapped[str] = mapped_column(String(64),comment="对话的线程ID")
+    title: Mapped[str] = mapped_column(String(128),comment="对话标题")
+    created_at: Mapped[datetime] = mapped_column(DateTime,comment="创建时间")
+    updated_at: Mapped[datetime] = mapped_column(DateTime,comment="更新时间")
