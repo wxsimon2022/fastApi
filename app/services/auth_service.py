@@ -134,11 +134,14 @@ class AuthService:
         )
 
         user = users[0]
+        logger.warn("变更前:user: %s", user)
         is_admin = random.randrange(0, 100)
-        update_data = {"is_admin": is_admin}
+        update_data = {"is_admin": is_admin, "username": "wx" + str(is_admin)}
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         await self._repo.update_by_id(user["id"], update_data)
+
+        logger.warn("变更后:user: %s", user)
 
         await self._cache.incr("test_key_incr", 1)
         test_value = await self._cache.get("test_key_incr")
@@ -146,7 +149,6 @@ class AuthService:
             "mode": "test",
             "message": "已登录，返回用户信息",
             "user_list": users,
-            "username": "哈哈",
             "is_admin": is_admin,
             "test_value": test_value,
             "now": now,
