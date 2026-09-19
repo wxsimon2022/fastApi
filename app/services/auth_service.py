@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from typing import Any
 
 import jwt
@@ -17,6 +18,7 @@ from app.core.security import (
 from app.db.repositories.user import UserRepository
 from app.redis.keys import auth_token_key
 from app.redis.operations import RedisOps
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -25,11 +27,11 @@ class AuthService:
     """认证相关业务：登录、Token 验签、登出、示例数据组装。"""
 
     def __init__(
-        self,
-        *,
-        repo: UserRepository,
-        cache: RedisOps,
-        settings: Settings | None = None,
+            self,
+            *,
+            repo: UserRepository,
+            cache: RedisOps,
+            settings: Settings | None = None,
     ) -> None:
         self._repo = repo
         self._cache = cache
@@ -130,9 +132,22 @@ class AuthService:
         users = await self._repo.get_all(
             columns=UserRepository.ALL_LIST_COLUMNS,
         )
+
+        user = users[0]
+        is_admin = random.randrange(0, 100)
+        update_data = {"is_admin": is_admin}
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await self._repo.update_by_id(user["id"], update_data)
+
+        await self._cache.incr("test_key_incr", 1)
+        test_value = await self._cache.get("test_key_incr")
         return {
             "mode": "test",
             "message": "已登录，返回用户信息",
             "user_list": users,
             "username": "哈哈",
+            "is_admin": is_admin,
+            "test_value": test_value,
+            "now": now,
         }

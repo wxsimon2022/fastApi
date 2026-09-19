@@ -8,4 +8,4 @@ class UserRepository(BaseRepository):
     model = Users
 
     # 用户列表查询时返回
-    ALL_LIST_COLUMNS = ["id", "username","created_at"]
+    ALL_LIST_COLUMNS = ["id", "username","created_at","is_admin"]
