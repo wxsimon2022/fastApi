@@ -145,6 +145,14 @@ class AuthService:
 
         logger.warn("变更后新user:new_user: %s", new_user)
 
+        names = [user["id"] for user in users]
+
+        user_map = {user["id"]: user for user in users}
+
+        name_map = {user["username"]: user for user in users}
+
+        sorted_user = sorted(users, key=lambda x: x["id"], reverse=True)
+
         await self._cache.incr("test_key_incr", 1)
         test_value = await self._cache.get("test_key_incr")
         return {
@@ -154,4 +162,8 @@ class AuthService:
             "is_admin": is_admin,
             "test_value": test_value,
             "now": now,
+            "names": names,
+            "user_map": user_map,
+            "name_map": name_map,
+            "sorted_user": sorted_user,
         }
