@@ -153,6 +153,11 @@ class AuthService:
 
         sorted_user = sorted(users, key=lambda x: x["id"], reverse=True)
 
+        for user_one in users:
+            user_item = user_map.get(user_one["id"])
+            if user_item:
+                user_one["username_new"] = user_item["username"]
+
         await self._cache.incr("test_key_incr", 1)
         test_value = await self._cache.get("test_key_incr")
         return {
