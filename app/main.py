@@ -21,6 +21,7 @@ from app.db.database import database
 from app.db.sync_database import shutdown_sync_engine
 from app.redis.client import redis_client
 from app.middleware.api_response import ApiResponseOrderMiddleware
+from app.middleware.trace import TraceLoggingMiddleware
 from app.schemas.common import ApiResponse, success
 
 
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(ApiResponseOrderMiddleware)
+    app.add_middleware(TraceLoggingMiddleware)
 
     app.add_exception_handler(AppException, app_exception_handler)
     app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)

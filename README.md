@@ -158,9 +158,9 @@ HTTP → Controller → Service → Repository → MySQL
 | 包 | 导出内容 |
 |----|----------|
 | `app.db` | `database`, `get_db`, `DbSession`, `UserRepo`, `MessageRepo` |
-| `app.core` | `AppException`, `get_logger`, `setup_logging`, `create_access_token`, `decode_access_token`, `hash_password`, `verify_password` |
+| `app.core` | `AppException`, `get_logger`, `get_trace_id`, `set_trace_id`, `setup_logging`, `create_access_token`, `decode_access_token`, `hash_password`, `verify_password` |
 | `app.redis` | `RedisClient`, `redis_client`, `RedisOps`, `auth_token_key`, `user_cache_key` |
-| `app.middleware` | `ApiResponseOrderMiddleware` |
+| `app.middleware` | `ApiResponseOrderMiddleware`, `TraceLoggingMiddleware` |
 | `app.schemas` | `ApiResponse`, `SUCCESS_CODE`, `api_body`, `fail`, `success` |
 | `app.db.models` | `Users`, `Messages`, `Conversations` |
 | `app.db.repositories` | `BaseRepository`, `UserRepository`, `MessageRepository`, `ConversationRepository`, `FieldQuery`, `FieldQueryExecutor`, `FieldQueryMode` |
@@ -191,6 +191,21 @@ cp .env.example .env
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Token 有效分钟数 |
 
 数据库连接串由 `DB_*` 变量自动拼接；Redis URL 由 `REDIS_*` 自动拼接。
+
+### 日志链路
+
+`TraceLoggingMiddleware` 会为每个 HTTP 请求建立 trace id：
+
+- 优先读取请求头 `X-Trace-ID`，兼容 `X-Request-ID`
+- 未传或格式非法时自动生成 32 位 trace id
+- 响应头 `X-Trace-ID` 返回本次请求的 trace id
+- 同一次请求中的 Controller、Service、Repository、SQL 日志自动带相同 `trace_id`
+
+```text
+2026-09-19 09:43:35 INFO [trace_id=trace-from-client] [app.controllers.v1.health] health check
+```
+
+异步协程和 `asyncio.create_task()` 会自动继承上下文；自定义 `ThreadPoolExecutor` 提交任务时，需要使用 `contextvars.copy_context().run` 显式传递上下文。
 
 ### 现有数据表
 

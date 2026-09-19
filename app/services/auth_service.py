@@ -139,9 +139,11 @@ class AuthService:
         update_data = {"is_admin": is_admin, "username": "wx" + str(is_admin)}
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        await self._repo.update_by_id(user["id"], update_data)
+        new_user = await self._repo.update_by_id(user["id"], update_data)
 
         logger.warn("变更后:user: %s", user)
+
+        logger.warn("变更后新user:new_user: %s", new_user)
 
         await self._cache.incr("test_key_incr", 1)
         test_value = await self._cache.get("test_key_incr")

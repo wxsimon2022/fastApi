@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from typing import Any
 
 from app.core.exceptions import AppException
@@ -40,6 +41,8 @@ class ConcurrentQueryService:
         futures = [
             loop.run_in_executor(
                 _THREAD_POOL,
+                # run_in_executor 不自动复制 ContextVar，显式复制以保留 trace id。
+                copy_context().run,
                 query_user_by_id_sync,
                 user_id,
                 self.COLUMNS,
@@ -57,9 +60,9 @@ class ConcurrentQueryService:
         }
 
     async def query_users_async(
-        self,
-        user_ids: list[int],
-        repo: UserRepository,
+            self,
+            user_ids: list[int],
+            repo: UserRepository,
     ) -> dict[str, Any]:
         """
         asyncio 并发查库（对比示例，非多线程）。
@@ -88,9 +91,9 @@ class ConcurrentQueryService:
             raise AppException(f"单次最多查询 {MAX_QUERY_COUNT} 个 id", code=400)
 
     def _build_items(
-        self,
-        user_ids: list[int],
-        results: list[dict | None],
+            self,
+            user_ids: list[int],
+            results: list[dict | None],
     ) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         for user_id, user in zip(user_ids, results, strict=True):
