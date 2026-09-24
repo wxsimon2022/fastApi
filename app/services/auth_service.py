@@ -159,6 +159,13 @@ class AuthService:
                 user_one["username_new"] = user_item["username"]
 
         await self._cache.incr("test_key_incr", 1)
+
+        if is_admin % 2 == 0:
+            message = "偶数"
+        else:
+            message = "奇数"
+
+        await self._cache.set("test_key_set", "test_value_set")
         test_value = await self._cache.get("test_key_incr")
         return {
             "mode": "test",
@@ -171,4 +178,5 @@ class AuthService:
             "user_map": user_map,
             "name_map": name_map,
             "sorted_user": sorted_user,
+            "message": message,
         }
